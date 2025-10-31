@@ -205,3 +205,98 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Data files (common in battery degradation analysis)
+*.csv
+*.xlsx
+*.xls
+*.json
+*.pickle
+*.pkl
+*.h5
+*.hdf5
+*.mat
+*.dat
+*.parquet
+data/
+datasets/
+raw_data/
+processed_data/
+
+# Model files and checkpoints
+*.h5
+*.ckpt
+*.pth
+*.pt
+*.onnx
+*.tflite
+*.pb
+models/
+checkpoints/
+saved_models/
+
+# Visualization and plotting outputs
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.pdf
+*.svg
+*.eps
+plots/
+figures/
+outputs/
+
+# Jupyter notebook outputs (in addition to checkpoints already covered)
+*.ipynb_checkpoints/
+
+# Configuration files that might contain sensitive data
+config.ini
+config.yaml
+config.yml
+secrets.json
+.secrets
+
+# Windows specific files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# MacOS specific files (for cross-platform compatibility)
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDE specific files
+# VS Code
+.vscode/
+*.code-workspace
+
+# PyCharm (additional to what's already there)
+.idea/
+
+# Spyder (additional to what's already there)
+.spyderproject
+.spyproject
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Log files (additional to *.log already covered)
+logs/
+*.log.*
+
+# Cache directories
+.cache/
+cache/
+
+# Backup files
+*.bak
+*.backup
+*~
