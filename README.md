@@ -1,45 +1,66 @@
-# Lithium Iron Phosphate Battery Degradation Models
+# Battery Degradation Modeling for Cell Life Assessment
 
-A comprehensive toolkit for modeling and analyzing LFP battery degradation in utility-scale energy storage applications.
+A comprehensive toolkit for modeling and analyzing lithium-ion battery degradation with emphasis on mechanistic and semi-empirical approaches for cell life assessment.
 
 ## Overview
 
-This project implements degradation models for Lithium Iron Phosphate (LFP) batteries specifically designed for utility-scale energy storage systems. The models account for both calendar aging (time-dependent degradation) and cycle aging (usage-dependent degradation) under typical grid operation conditions of one full charge-discharge cycle per day at 100% Depth of Discharge (DoD).
+This project implements state-of-the-art battery degradation models based on electrochemical mechanisms and empirical relationships. The models combine physics-based understanding with data-driven approaches to predict capacity fade and power fade over the battery lifetime. The toolkit supports multiple chemistries including LFP, NMC, and NCA, with particular emphasis on understanding the underlying degradation mechanisms including SEI growth, active material loss, and lithium plating.
 
 ## Key Features
 
-- **Comprehensive Degradation Modeling**: Combines calendar and cycling effects for accurate State of Health (SoH) predictions
-- **Temperature-Dependent Analysis**: Models the critical impact of temperature on LFP battery aging
-- **Utility-Scale Focus**: Optimized for grid applications with daily 100% DoD cycling
-- **Multiple Model Types**: Supports both empirical and semi-empirical degradation models
-- **Long-Term Predictions**: Designed for multi-year battery lifecycle analysis
-- **Visualization Tools**: Generate plots and reports for capacity fade analysis
+- **Mechanistic Degradation Models**: Physics-based models incorporating SEI growth, active material degradation, and lithium inventory loss
+- **Semi-Empirical Approaches**: Data-driven models calibrated with experimental cycling data
+- **Multi-Chemistry Support**: Models for LFP, NMC, NCA, and other lithium-ion chemistries
+- **Capacity and Power Fade**: Tracks both capacity loss and resistance increase over lifetime
+- **Stress Factor Analysis**: Temperature, C-rate, depth of discharge, and state of charge dependencies
+- **Model Parameter Identification**: Tools for fitting models to experimental data
+- **Comprehensive Validation**: Compare predictions against real cycling test data
 
 ## Scientific Background
 
-### LFP Battery Characteristics
-
-Lithium Iron Phosphate batteries are increasingly used in utility-scale energy storage due to their:
-- **Exceptional Cycle Life**: Commercial LFP/graphite cells demonstrate >5,000 full cycles at room temperature
-- **Chemical Stability**: LFP's olivine cathode structure resists transition metal dissolution and lattice collapse
-- **Deep Discharge Tolerance**: Lower nominal voltage (~3.3V) reduces electrolyte oxidation
-- **SoC Tolerance**: Less sensitive to high State of Charge compared to NMC/NCA chemistries
-
 ### Degradation Mechanisms
 
-The primary degradation mechanisms modeled include:
+The models implemented in this toolkit address the fundamental degradation mechanisms in lithium-ion batteries:
 
-1. **Solid-Electrolyte Interphase (SEI) Growth**: The dominant mechanism causing loss of lithium inventory (LLI)
-2. **Calendar Aging**: Time-dependent degradation occurring even during storage
-3. **Cycle Aging**: Usage-dependent degradation from charge-discharge cycles
-4. **Temperature Effects**: Accelerated aging at elevated temperatures
+#### 1. **Loss of Lithium Inventory (LLI)**
+- SEI layer formation and growth on anode surface
+- Consumes cyclable lithium ions
+- Time and temperature dependent (Arrhenius kinetics)
+- Accelerated by high temperature and high state of charge
 
-### Key Degradation Factors
+#### 2. **Loss of Active Material (LAM)**
+- Particle cracking and isolation at cathode
+- Active material dissolution
+- Loss of electronic contact
+- Dependent on cycling stress (C-rate, DoD)
 
-- **Temperature**: Most influential factor - 40°C causes 1.3× faster aging, 55°C causes ~5× faster aging compared to 25°C
-- **State of Charge**: High SoC accelerates SEI formation
-- **Charge/Discharge Rates**: High C-rates can induce additional stress
-- **Depth of Discharge**: Deep cycling effects on capacity retention
+#### 3. **Resistance Growth**
+- SEI layer impedance increase
+- Contact resistance at interfaces
+- Electrolyte degradation
+- Leads to power fade
+
+#### 4. **Side Reactions**
+- Lithium plating at low temperature/high C-rate
+- Gas generation
+- Electrolyte decomposition
+- Accelerated at cell-level abuse conditions
+
+### Model Categories
+
+**Physics-Based Models**: Electrochemical models solving transport equations and reaction kinetics
+
+**Semi-Empirical Models**: Combine mechanistic understanding with empirical stress factors
+
+**Empirical Models**: Purely data-driven relationships for rapid assessment
+
+### Key Stress Factors
+
+- **Temperature**: Arrhenius-based acceleration of all degradation mechanisms
+- **State of Charge**: Affects SEI growth rate and material stability
+- **Depth of Discharge**: Mechanical stress on active materials
+- **C-rate**: Transport limitations and lithium plating risk
+- **Time**: SEI growth follows diffusion-limited kinetics (sqrt(t))
 
 ## Installation
 
@@ -67,66 +88,104 @@ pip install battdegr
 
 ```python
 import battdegr
-from battdegr.models import LFPDegradationModel
-from battdegr.analysis import BatteryAnalyzer
+from battdegr.models import SemiEmpiricalModel
+from battdegr.analysis import LifetimePredictor
 
-# Initialize LFP degradation model
-model = LFPDegradationModel(
-    temperature=25,  # °C
-    dod=100,        # % Depth of Discharge
-    cycle_frequency=1  # cycles per day
+# Initialize semi-empirical degradation model
+model = SemiEmpiricalModel(
+    chemistry='LFP',           # Battery chemistry
+    capacity_nominal=50,       # Ah
+    temperature=25,            # °C
+    soc_mean=0.5,             # Average state of charge
+    dod=0.8,                  # Depth of discharge
+    c_rate_charge=1.0,        # Charge C-rate
+    c_rate_discharge=1.0      # Discharge C-rate
 )
 
-# Predict capacity over time
-time_years = [0, 1, 2, 5, 10, 15, 20]
-capacity_retention = model.predict_capacity(time_years)
+# Predict capacity fade over time
+time_days = [0, 365, 730, 1825, 3650]  # 0, 1, 2, 5, 10 years
+cycles = [0, 365, 730, 1825, 3650]     # Daily cycling
 
-# Analyze results
-analyzer = BatteryAnalyzer(model)
-analyzer.plot_degradation_curve(time_years, capacity_retention)
-analyzer.generate_report()
+# Calculate capacity retention
+capacity_fade = model.predict_fade(time_days, cycles)
+print(f"Capacity retention: {100 - capacity_fade}%")
+
+# Analyze lifetime
+predictor = LifetimePredictor(model)
+eol_cycles, eol_time = predictor.estimate_lifetime(eol_threshold=0.8)
+print(f"Expected lifetime: {eol_cycles} cycles or {eol_time/365:.1f} years")
 ```
 
 ## Usage Examples
 
-### Basic Degradation Modeling
+### Mechanistic Model with SEI Growth
 
 ```python
-# Create model for utility-scale operation
-model = LFPDegradationModel(
-    initial_capacity=100,    # Ah
-    temperature=30,          # °C
-    dod=100,                # %
-    eol_threshold=80        # % capacity for end-of-life
+from battdegr.models import MechanisticModel
+
+# Create physics-based model
+model = MechanisticModel(
+    chemistry='NMC',
+    capacity_nominal=50,        # Ah
+    sei_layer_initial=10e-9,    # Initial SEI thickness (m)
+    sei_growth_rate=1e-14,      # SEI growth rate constant
+    ea_sei=0.4,                 # SEI activation energy (eV)
+    ea_lam=0.6,                 # LAM activation energy (eV)
+    lam_factor=5e-6             # Active material loss factor
 )
 
-# Predict when battery reaches end-of-life
-eol_years = model.calculate_eol()
-print(f"Expected battery life: {eol_years:.1f} years")
+# Run simulation
+results = model.simulate(cycles=5000, temperature=25, dod=0.8)
+print(f"Capacity after 5000 cycles: {results.capacity_retention*100:.1f}%")
+print(f"Resistance increase: {results.resistance_growth:.1f}%")
 ```
 
-### Temperature Sensitivity Analysis
+### Model Parameter Identification
 
 ```python
-from battdegr.analysis import TemperatureAnalysis
+from battdegr.calibration import ParameterOptimizer
+import pandas as pd
 
-# Compare degradation at different temperatures
-temps = [20, 25, 30, 35, 40, 45]
-temp_analysis = TemperatureAnalysis(temperatures=temps)
-temp_analysis.run_comparison()
-temp_analysis.plot_temperature_effects()
-```
+# Load experimental cycling data
+data = pd.read_csv('cycling_test_data.csv')
 
-### Custom Degradation Parameters
-
-```python
-# Advanced model with custom parameters
-advanced_model = LFPDegradationModel(
-    sei_growth_rate=0.002,      # Custom SEI formation rate
-    temperature_activation=0.65, # eV, activation energy
-    calendar_factor=0.1,         # Calendar aging coefficient
-    cycle_factor=0.05           # Cycle aging coefficient
+# Initialize optimizer
+optimizer = ParameterOptimizer(
+    model_type='semi_empirical',
+    chemistry='LFP'
 )
+
+# Fit model to data
+optimized_params = optimizer.fit(
+    cycles=data['cycle'],
+    capacity=data['capacity'],
+    temperature=data['temperature']
+)
+
+print("Optimized parameters:")
+for param, value in optimized_params.items():
+    print(f"  {param}: {value:.6f}")
+```
+
+### Multi-Stress Degradation Analysis
+
+```python
+from battdegr.analysis import StressFactorAnalysis
+
+# Analyze impact of different stress factors
+analysis = StressFactorAnalysis(chemistry='NMC')
+
+# Temperature sensitivity
+analysis.temperature_sweep(range_c=[0, 60], cycles=3000)
+
+# C-rate impact
+analysis.crate_sweep(c_rates=[0.5, 1, 2, 3], temperature=25)
+
+# DoD impact
+analysis.dod_sweep(dod_values=[0.2, 0.5, 0.8, 1.0], temperature=25)
+
+# Generate comprehensive report
+analysis.generate_report('stress_analysis_report.pdf')
 ```
 
 ## Project Structure
@@ -235,7 +294,7 @@ If you use this software in your research, please cite:
 
 ## Contact
 
-- **Author**: Paul Weiner
+- **Author**: Phillip Weiner
 - **Email**: [Contact through GitHub](https://github.com/pweiner930)
 - **Issues**: [GitHub Issues](https://github.com/pweiner930/battdegr/issues)
 

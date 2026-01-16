@@ -1,156 +1,319 @@
-# Mathematical Models for LFP Battery Degradation
+# Mathematical Models for Battery Degradation and Cell Life Assessment
 
 ## Overview
 
-This document describes the mathematical formulations used in the LFP battery degradation models.
+This document describes the mathematical formulations used in mechanistic and semi-empirical battery degradation models for cell life assessment. The models are based on fundamental electrochemical principles and validated against experimental cycling data.
 
-## Calendar Aging Model
+## Mechanistic Model: SEI Layer Growth
 
-### Basic Arrhenius-Based Model
+### SEI Formation and Growth
 
-The calendar aging capacity loss follows an Arrhenius temperature dependence:
-
-```
-Q_loss_cal(t, T, SoC) = A_cal * sqrt(t) * exp(-Ea_cal / (R*T)) * f_SoC(SoC)
-```
-
-**Parameters:**
-- `Q_loss_cal`: Calendar capacity loss (%)
-- `t`: Time (days or years)
-- `T`: Temperature (K)
-- `SoC`: State of Charge (0-1)
-- `A_cal`: Pre-exponential factor
-- `Ea_cal`: Activation energy for calendar aging (~0.65 eV)
-- `R`: Gas constant (8.314 J/mol·K)
-
-### SoC Dependence Function
-
-The SoC stress factor for LFP batteries:
+The solid-electrolyte interphase (SEI) layer grows according to a parabolic law (diffusion-limited growth):
 
 ```
-f_SoC(SoC) = 1 + α * (SoC - 0.5)²
+δ_SEI(t) = δ_SEI,0 + k_SEI * sqrt(t)
 ```
 
-Where `α` is the SoC stress coefficient (~0.3 for LFP).
+Where:
+- `δ_SEI`: SEI layer thickness (m)
+- `δ_SEI,0`: Initial SEI thickness (typically 10-50 nm)
+- `k_SEI`: SEI growth rate constant (m/s^0.5)
+- `t`: Time (s)
 
-## Cycle Aging Model
+### Temperature Dependence (Arrhenius)
 
-### Cycle-Based Capacity Loss
+The SEI growth rate follows Arrhenius kinetics:
 
 ```
-Q_loss_cyc(N, DoD, T, C_rate) = B_cyc * N^β * g_DoD(DoD) * h_T(T) * i_C(C_rate)
+k_SEI(T) = k_SEI,ref * exp(-Ea_SEI/R * (1/T - 1/T_ref))
 ```
 
 **Parameters:**
-- `Q_loss_cyc`: Cycle capacity loss (%)
+- `Ea_SEI`: Activation energy for SEI growth (typically 0.3-0.5 eV)
+- `R`: Gas constant (8.314 J/mol·K or 8.617e-5 eV/K)
+- `T`: Absolute temperature (K)
+- `T_ref`: Reference temperature (typically 298 K)
+
+### SoC Dependence of SEI Growth
+
+The SEI growth rate depends on electrode potential (related to SoC):
+
+```
+k_SEI(SoC) = k_SEI,ref * exp(β_SEI * (SoC - SoC_ref))
+```
+
+Where:
+- `β_SEI`: SoC sensitivity coefficient (typically 1-3)
+- `SoC_ref`: Reference state of charge (typically 0.5)
+
+### Capacity Loss from SEI Growth
+
+The capacity loss due to lithium inventory loss (LLI) from SEI formation:
+
+```
+Q_loss_SEI(t) = (n_Li_consumed / n_Li_total) * 100%
+```
+
+Where:
+```
+n_Li_consumed = A_electrode * δ_SEI * ρ_SEI / M_SEI
+```
+
+- `A_electrode`: Electrode active area (m²)
+- `ρ_SEI`: SEI layer density (kg/m³)
+- `M_SEI`: Molar mass of SEI components (kg/mol)
+
+## Active Material Loss (LAM) Model
+
+### Mechanical Stress-Induced Degradation
+
+Active material loss occurs through particle cracking, isolation, and dissolution:
+
+```
+Q_loss_LAM(N, ΔU) = k_LAM * N^α * f_stress(ΔU) * exp(-Ea_LAM/RT)
+```
+
+**Parameters:**
+- `Q_loss_LAM`: Capacity loss from active material loss (%)
 - `N`: Number of cycles
-- `DoD`: Depth of Discharge (0-1)
-- `C_rate`: Charge/discharge rate (C)
-- `B_cyc`: Cycle aging coefficient
-- `β`: Power law exponent (~0.5-0.8)
+- `α`: Power law exponent for cycling (typically 0.5-0.75)
+- `ΔU`: Voltage swing during cycling (V)
+- `k_LAM`: LAM rate constant
+- `Ea_LAM`: Activation energy for LAM (typically 0.4-0.8 eV)
 
-### DoD Stress Function
-
-For utility-scale applications (typically 100% DoD):
+### Stress Function (DoD and C-rate Dependence)
 
 ```
-g_DoD(DoD) = DoD^γ
-```
-
-Where `γ` is the DoD stress exponent (~1.1 for LFP).
-
-### Temperature Function for Cycling
-
-```
-h_T(T) = exp(-Ea_cyc / (R*T))
-```
-
-With `Ea_cyc` ≈ 0.3-0.4 eV for cycle aging.
-
-### C-rate Function
-
-```
-i_C(C_rate) = 1 + δ * max(0, C_rate - 1)
-```
-
-Where `δ` is the C-rate stress coefficient.
-
-## Combined Model
-
-### Superposition Approach
-
-The total capacity loss combines calendar and cycle aging:
-
-```
-Q_total(t, N, T, SoC, DoD, C_rate) = Q_loss_cal(t, T, SoC) + Q_loss_cyc(N, DoD, T, C_rate)
-```
-
-### Interactive Model
-
-For more accurate predictions, include interaction terms:
-
-```
-Q_total = Q_cal + Q_cyc + Q_interaction
+f_stress(DoD, C_rate) = (DoD)^p * (1 + q * (C_rate - 1))
 ```
 
 Where:
+- `p`: DoD stress exponent (typically 1.5-2.5)
+- `q`: C-rate stress coefficient (typically 0.3-0.7)
+- DoD: Depth of discharge (0-1)
+
+### Cathode-Specific LAM
+
+For different cathode chemistries:
+
+**NMC/NCA:**
 ```
-Q_interaction = k_int * Q_cal * Q_cyc
+Q_LAM_NMC = k_LAM * N^0.6 * DoD^2 * exp(-0.6eV / kT)
 ```
 
-## Advanced Models
-
-### Multi-Physics Model
-
-Incorporating SEI growth kinetics:
-
+**LFP:**
 ```
-dQ/dt = k_SEI(T, SoC) * sqrt(Q_consumed) + k_cycle(T, DoD) * dN/dt
+Q_LAM_LFP = k_LAM * N^0.5 * DoD^1.5 * exp(-0.8eV / kT)
 ```
 
-### State-Space Representation
+LFP shows higher activation energy due to stable olivine structure.
 
-For real-time applications:
+### Lithium Plating Model
+
+Lithium plating occurs at low temperature or high C-rate charging:
 
 ```
-x[k+1] = A*x[k] + B*u[k]
-y[k] = C*x[k]
+Q_plating = k_pl * N * max(0, I - I_lim(T))^2
 ```
 
 Where:
-- `x`: State vector (capacity, resistance)
-- `u`: Input vector (temperature, current)
-- `y`: Output (measurable capacity)
+- `I`: Charging current (A)
+- `I_lim(T)`: Temperature-dependent current limit
+```
+I_lim(T) = I_ref * exp(-Ea_ct/R * (1/T - 1/T_ref))
+```
 
-## Parameter Values for LFP
+Plating leads to irreversible lithium loss and accelerated capacity fade.
 
-### Typical Parameter Ranges
+## Semi-Empirical Combined Model
 
-| Parameter | Value Range | Units | Notes |
-|-----------|-------------|-------|-------|
-| A_cal | 0.01-0.1 | %/sqrt(year) | Pre-exponential factor |
-| Ea_cal | 0.6-0.8 | eV | Calendar activation energy |
-| B_cyc | 1e-6 to 1e-4 | %/cycle^β | Cycle aging coefficient |
-| β | 0.5-0.8 | - | Power law exponent |
-| α | 0.1-0.5 | - | SoC stress coefficient |
-| γ | 1.0-1.2 | - | DoD stress exponent |
+### Weighted Superposition
 
-### Temperature-Specific Coefficients
+The total capacity fade combines multiple degradation mechanisms:
 
-For different temperature ranges:
+```
+Q_fade_total = Q_SEI + Q_LAM + Q_plating + Q_interaction
+```
+
+### Calendar-Cycle Interaction
+
+Realistic models include non-linear interaction between calendar and cycle aging:
+
+```
+Q_total(t, N) = w_cal * Q_cal(t) + w_cyc * Q_cyc(N) + w_int * Q_cal(t) * Q_cyc(N)
+```
+
+Where weights sum to unity: `w_cal + w_cyc + w_int = 1`
+
+### General Semi-Empirical Form
+
+A widely-used general model structure:
+
+```
+Q_fade(t, N, T, SoC, DoD, C) = A * t^z * N^p * exp(-Ea/RT) * f(SoC) * g(DoD) * h(C)
+```
+
+**Stress Factor Functions:**
+
+```
+f(SoC) = exp(k_soc * SoC)                    # SoC stress
+g(DoD) = DoD^m                                # DoD stress  
+h(C) = C^n                                    # C-rate stress
+```
+
+Typical parameter ranges:
+- `z`: 0.5-0.75 (time exponent, from SEI diffusion)
+- `p`: 0.5-0.8 (cycle exponent, from LAM)
+- `Ea`: 0.3-0.7 eV (combined activation energy)
+- `m`: 1.5-2.5 (DoD exponent)
+- `n`: 0.5-1.5 (C-rate exponent)
+
+### Resistance Growth Model
+
+Power fade due to impedance increase:
+
+```
+R_increase(t, N, T) = R_SEI(t) + R_contact(N) + R_electrolyte(t, T)
+```
+
+**SEI Resistance:**
+```
+R_SEI(t) = R_SEI,0 + k_R * sqrt(t) * exp(-Ea_R / RT)
+```
+
+**Contact Resistance from LAM:**
+```
+R_contact(N) = R_c,0 * (1 + k_c * N^α)
+```
+
+## Advanced Modeling Approaches
+
+### Differential Equation System
+
+Complete electrochemical model with coupled degradation:
+
+```
+dC/dt = -k_SEI(T, V) * sqrt(t) - k_LAM(T) * (dN/dt)
+dR/dt = α_R * dδ_SEI/dt + β_R * dLAM/dt
+dδ_SEI/dt = k_SEI(T, V) / (2 * sqrt(t))
+```
+
+Where:
+- `C`: Remaining capacity
+- `R`: Internal resistance
+- `δ_SEI`: SEI layer thickness
+- `V`: Electrode potential (function of SoC)
+
+### State-Space Degradation Model
+
+For online estimation and prediction:
+
+**State vector:**
+```
+x = [C, R, δ_SEI, LAM]^T
+```
+
+**State equations:**
+```
+x[k+1] = f(x[k], u[k], w[k])
+y[k] = h(x[k], v[k])
+```
+
+**Inputs:**
+```
+u = [I, T, SoC]^T
+```
+
+**Measurements:**
+```
+y = [C_measured, R_measured]^T
+```
+
+This enables Kalman filtering for real-time state estimation.
+
+### Probabilistic Degradation Model
+
+Accounts for cell-to-cell variation:
+
+```
+Q_fade ~ Normal(μ(t, N, T), σ²(t, N))
+```
+
+Where mean and variance evolve according to:
+```
+μ(t) = μ_0 + k_mean * t^z * N^p
+σ²(t) = σ²_0 + k_var * t
+```
+
+### Bayesian Parameter Estimation
+
+Update model parameters with new data:
+
+```
+p(θ | D) ∝ p(D | θ) * p(θ)
+```
+
+Where:
+- `θ`: Model parameters
+- `D`: Experimental data
+- `p(θ)`: Prior distribution
+- `p(D | θ)`: Likelihood
+- `p(θ | D)`: Posterior distribution
+
+## Model Parameters by Chemistry
+
+### LFP/Graphite Parameters
+
+| Parameter | Value | Units | Source/Notes |
+|-----------|-------|-------|--------------|
+| k_SEI,ref | 1-5 × 10^-14 | m/s^0.5 | SEI growth rate at 25°C |
+| Ea_SEI | 0.3-0.4 | eV | SEI formation activation energy |
+| β_SEI | 1.5-2.5 | - | SoC sensitivity |
+| k_LAM | 1-10 × 10^-5 | %/cycle^α | LAM rate constant |
+| α_LAM | 0.5-0.6 | - | Cycle exponent for LAM |
+| Ea_LAM | 0.7-0.9 | eV | LAM activation energy (high due to stable structure) |
+| p_DoD | 1.2-1.5 | - | DoD stress exponent |
+
+### NMC/Graphite Parameters
+
+| Parameter | Value | Units | Source/Notes |
+|-----------|-------|-------|--------------|
+| k_SEI,ref | 2-8 × 10^-14 | m/s^0.5 | SEI growth rate at 25°C |
+| Ea_SEI | 0.4-0.5 | eV | SEI formation activation energy |
+| β_SEI | 2.0-3.5 | - | SoC sensitivity (higher than LFP) |
+| k_LAM | 5-20 × 10^-5 | %/cycle^α | LAM rate constant |
+| α_LAM | 0.6-0.75 | - | Cycle exponent for LAM |
+| Ea_LAM | 0.4-0.6 | eV | LAM activation energy (lower than LFP) |
+| p_DoD | 2.0-2.5 | - | DoD stress exponent (more sensitive) |
+
+### NCA/Graphite Parameters
+
+| Parameter | Value | Units | Source/Notes |
+|-----------|-------|-------|--------------|
+| k_SEI,ref | 3-10 × 10^-14 | m/s^0.5 | SEI growth rate at 25°C |
+| Ea_SEI | 0.45-0.55 | eV | SEI formation activation energy |
+| β_SEI | 2.5-4.0 | - | SoC sensitivity (highest) |
+| k_LAM | 8-25 × 10^-5 | %/cycle^α | LAM rate constant |
+| α_LAM | 0.65-0.8 | - | Cycle exponent for LAM |
+| Ea_LAM | 0.35-0.55 | eV | LAM activation energy |
+| p_DoD | 2.2-3.0 | - | DoD stress exponent |
+
+### Universal Constants
 
 ```python
-# Low temperature (0-25°C)
-Ea_cal_low = 0.7  # eV
-A_cal_low = 0.05  # %/sqrt(year)
+# Physical constants
+R_gas = 8.314  # J/(mol·K)
+R_gas_eV = 8.617e-5  # eV/K
+F = 96485  # C/mol (Faraday constant)
 
-# Moderate temperature (25-40°C)  
-Ea_cal_mod = 0.65  # eV
-A_cal_mod = 0.08  # %/sqrt(year)
+# SEI properties
+rho_SEI = 1600  # kg/m³ (SEI density)
+M_SEI = 0.162  # kg/mol (effective molar mass)
+delta_SEI_0 = 10e-9  # m (initial SEI thickness, ~10 nm)
 
-# High temperature (40-60°C)
-Ea_cal_high = 0.6  # eV  
-A_cal_high = 0.12  # %/sqrt(year)
+# Typical ranges
+T_ref = 298.15  # K (25°C reference)
+SoC_ref = 0.5  # Reference state of charge
 ```
 
 ## Model Validation
